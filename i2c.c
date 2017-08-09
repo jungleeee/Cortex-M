@@ -2,15 +2,14 @@
   ******************************************************************************
   * @file    i2c.c
   * @author  Jungle
-  * @version V1.1
-  * @date    17-7-2017
-  * @brief   i2c handle
+  * @version V1.0
+  * @date    2017/8/9
+  * @brief
   ******************************************************************************
   */
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx.h"
-#include "stdio.h"
 #include "i2c.h"
 
 /** @addtogroup Template_Project
@@ -424,4 +423,4 @@ void I2C_DMA_RX_IRQHandler(void)
   * @}
   */
 
-/************************ Copyright (C) Techgiant 2016 *****END OF FILE****/
+/************************ Copyright (C) jungleeee 2017 *****END OF FILE****/

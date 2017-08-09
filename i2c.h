@@ -3,7 +3,7 @@
   * @file    i2c.h
   * @author  Jungle
   * @version V1.0
-  * @date    2016/8/9
+  * @date    2017/8/9
   * @brief
   ******************************************************************************
   */
@@ -71,4 +71,4 @@ int8_t i2cbus_i2c1StartReadData(uint8_t sAddr,
 
 #endif /* __I2C_H */
 
-/************************ Copyright (C) comoany 20xx *****END OF FILE****/
+/************************ Copyright (C) jungleeee 2017 *****END OF FILE****/
