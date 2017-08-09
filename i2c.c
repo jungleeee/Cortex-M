@@ -2,14 +2,15 @@
   ******************************************************************************
   * @file    i2c.c
   * @author  Jungle
-  * @version V1.0
-  * @date    2017/8/9
-  * @brief
+  * @version V1.1
+  * @date    17-7-2017
+  * @brief   i2c handle
   ******************************************************************************
   */
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx.h"
+#include "stdio.h"
 #include "i2c.h"
 
 /** @addtogroup Template_Project
@@ -40,8 +41,6 @@ typedef struct i2cbus_i2cxStr
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 static i2cbus_i2cxStruct  i2cbus_i2c1Struct;
-static int i2cbus_i2c1IsError = 0;                      /* error flag */
-static int i2cbus_i2c1Mutex = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -181,126 +180,6 @@ void i2cbus_dataBufByDMA(const i2cbus_i2cxTypeEnum i2cxType, uint16_t length, ui
     }
 }
 
-
-/**
-  * @brief  bus busy,clear busy, (I2CBUS_I2C1->SR2 & 0X0002)
-  * @param  timeout: reset times
-  * @retval 1 success, 0 failed
-  */
-static uint8_t i2cbus_i2c1GpioReset(uint32_t timeout)
-{
-    uint32_t timeoutCnt = 0;
-    GPIO_InitTypeDef GPIO_InitStructure;
-
-    GPIO_InitStructure.GPIO_Pin = I2CBUS_I2C1_SCL_Pin;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_Init(I2CBUS_I2C1_SCL_Port, &GPIO_InitStructure);
-
-    GPIO_InitStructure.GPIO_Pin = I2CBUS_I2C1_SDA_Pin;
-    GPIO_Init(I2CBUS_I2C1_SDA_Port, &GPIO_InitStructure);
-
-    GPIO_SetBits(I2CBUS_I2C1_SCL_Port, I2CBUS_I2C1_SCL_Pin);
-    GPIO_SetBits(I2CBUS_I2C1_SDA_Port, I2CBUS_I2C1_SDA_Pin);
-
-    GPIO_InitStructure.GPIO_Pin = I2CBUS_I2C1_SDA_Pin;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-    GPIO_Init(I2CBUS_I2C1_SDA_Port, &GPIO_InitStructure);
-
-    do {
-        for(int i = 0;i < 9;i++) {
-            GPIO_ResetBits(I2CBUS_I2C1_SCL_Port, I2CBUS_I2C1_SCL_Pin);
-            for(int j = 0;j < 25;j++) {__asm("nop");}
-            GPIO_SetBits(I2CBUS_I2C1_SCL_Port, I2CBUS_I2C1_SCL_Pin);
-            for(int j = 0;j < 25;j++) {__asm("nop");}
-        }
-
-        if(GPIO_ReadInputDataBit(I2CBUS_I2C1_SDA_Port, I2CBUS_I2C1_SDA_Pin)) break;
-        timeoutCnt++;
-    }while(timeoutCnt < timeout);
-
-    i2cbus_i2c1Init();
-    I2C_ClearFlag(I2CBUS_I2C1, I2C_FLAG_AF);
-
-    uint16_t tmp = I2CBUS_I2C1->SR2;
-    if(tmp & 0X0002) {
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
-  * @brief  i2cbus_i2c1SWRST
-  * @param  None
-  * @retval None
-  */
-static inline void i2cbus_i2c1SWRST(void)
-{
-    uint16_t I2Cx_CR1, I2Cx_CR2;
-    uint16_t I2Cx_OAR1, I2Cx_CCR,I2Cx_TRISE;
-
-    I2Cx_CR1 = I2CBUS_I2C1->CR1;
-    I2Cx_CR2 = I2CBUS_I2C1->CR2;
-    I2Cx_OAR1 = I2CBUS_I2C1->OAR1;
-    I2Cx_CCR = I2CBUS_I2C1->CCR;
-    I2Cx_TRISE = I2CBUS_I2C1->TRISE;
-
-    //I2C_SoftwareResetCmd()
-    I2CBUS_I2C1->CR1 |= 0x8000;
-    I2CBUS_I2C1->CR1 &= ~0x8000;
-
-    I2CBUS_I2C1->CR1 = I2Cx_CR1;
-    I2CBUS_I2C1->CR2 = I2Cx_CR2;
-    I2CBUS_I2C1->OAR1 = I2Cx_OAR1;
-    I2CBUS_I2C1->CCR = I2Cx_CCR;
-    I2CBUS_I2C1->TRISE = I2Cx_TRISE;
-}
-
-/**
-  * @brief  read/write
-  * @param  type:   read/write
-  * @param  sAddr:  slave address
-  * @param  buf:    data buffer
-  * @param  length: write/read data length
-  * @param  txSuccess: pointer of write complete callback
-  * @param  rxSuccess: pointer of read complete callback
-  * @param  errCback:  pointer of write/read error callback
-  * @retval 0 start, 1 error
-  */
-static inline int8_t i2cbus_i2c1StartTxRxData(i2cbus_i2cxTypeEnum  type,
-                                                         uint8_t  sAddr,
-                                                          uint8_t  *buf,
-                                                        uint16_t length,
-                                                void (*txSuccess)(void),
-                                                void (*rxSuccess)(void),
-                                                 void (*errCback)(void))
-{
-    ///if(i2cbus_i2c1IsError) {
-        //if(i2cbus_i2c1GpioReset(5))
-            //i2cbus_i2c1IsError = 0;
-            //else
-                //return 1;
-
-    //}
-
-    i2cbus_i2c1Struct.i2cxType = type;
-    i2cbus_i2c1Struct.slaveAddr = sAddr;
-    i2cbus_i2c1Struct.dataBuf = buf;
-    i2cbus_i2c1Struct.dataBufLen = length;
-    i2cbus_i2c1Struct.sendSuccessCback = txSuccess;
-    i2cbus_i2c1Struct.recvSuccessCback = rxSuccess;
-    i2cbus_i2c1Struct.errDealCback = errCback;
-
-    I2C_AcknowledgeConfig(I2CBUS_I2C1,DISABLE);
-    /* Send I2C START condition */
-    I2C_GenerateSTART(I2CBUS_I2C1, ENABLE);
-
-    return 0;
-}
-
 /**
   * @brief  write
   * @param  sAddr:  slave address
@@ -316,7 +195,19 @@ int8_t i2cbus_i2c1StartWriteData(uint8_t sAddr,
                         void (*txSuccess)(void),
                          void (*errCback)(void))
 {
-    return i2cbus_i2c1StartTxRxData(I2CBUS_I2CX_WRITE, sAddr, buf, length, txSuccess, NULL, errCback);
+    i2cbus_i2c1Struct.i2cxType = I2CBUS_I2CX_WRITE;
+    i2cbus_i2c1Struct.slaveAddr = sAddr;
+    i2cbus_i2c1Struct.dataBuf = buf;
+    i2cbus_i2c1Struct.dataBufLen = length;
+    i2cbus_i2c1Struct.sendSuccessCback = txSuccess;
+    i2cbus_i2c1Struct.recvSuccessCback = NULL;
+    i2cbus_i2c1Struct.errDealCback = errCback;
+
+    I2C_AcknowledgeConfig(I2CBUS_I2C1,DISABLE);
+    /* Send I2C START condition */
+    I2C_GenerateSTART(I2CBUS_I2C1, ENABLE);
+
+    return 0;
 }
 
 /**
@@ -334,47 +225,20 @@ int8_t i2cbus_i2c1StartReadData(uint8_t sAddr,
                        void (*rxSuccess)(void),
                          void(*errCback)(void))
 {
-    return i2cbus_i2c1StartTxRxData(I2CBUS_I2CX_READ, sAddr, buf, length, NULL, rxSuccess, errCback);
+    i2cbus_i2c1Struct.i2cxType = I2CBUS_I2CX_READ;
+    i2cbus_i2c1Struct.slaveAddr = sAddr;
+    i2cbus_i2c1Struct.dataBuf = buf;
+    i2cbus_i2c1Struct.dataBufLen = length;
+    i2cbus_i2c1Struct.sendSuccessCback = NULL;
+    i2cbus_i2c1Struct.recvSuccessCback = rxSuccess;
+    i2cbus_i2c1Struct.errDealCback = errCback;
+
+    I2C_AcknowledgeConfig(I2CBUS_I2C1,DISABLE);
+    /* Send I2C START condition */
+    I2C_GenerateSTART(I2CBUS_I2C1, ENABLE);
+
+    return 0;
 }
-
-/**
-  * @brief  i2cbus_i2c1CloseBus
-  * @param  None
-  * @retval None
-  */
-void i2cbus_i2c1CloseBus(void)
-{
-    I2C_AcknowledgeConfig(I2CBUS_I2C1, DISABLE);
-    I2C_GenerateSTOP(I2CBUS_I2C1, ENABLE);
-}
-
-/**
-  * @brief  Lock
-  * @param  None
-  * @retval None
-  */
-void i2cbus_i2c1Lock(void)
-{
-    for(;;) {
-        if(!i2cbus_i2c1Mutex) {
-            i2cbus_i2c1Mutex = 1;
-
-            return;
-        }
-        //delay
-    }
-}
-
-/**
-  * @brief  Unlock
-  * @param  None
-  * @retval None
-  */
-void i2cbus_i2c1Unlock(void)
-{
-    i2cbus_i2c1Mutex = 0;
-}
-
 
 /**
   * @brief  Official documentation indicates that a higher priority is required
@@ -382,7 +246,7 @@ void i2cbus_i2c1Unlock(void)
   * @param  SubPrio: 0
   * @retval None
   */
-static void i2cbus_i2c1SetNVIC(uint8_t PrePrio, uint8_t SubPrio)
+static void i2cbus_i2c1SetPrio(uint8_t PrePrio, uint8_t SubPrio)
 {
     NVIC_InitTypeDef NVIC_InitStructure;
 
@@ -400,132 +264,112 @@ static void i2cbus_i2c1SetNVIC(uint8_t PrePrio, uint8_t SubPrio)
   */
 void I2CBUS_I2C1_EVIRQ_Handler(void)
 {
-    i2cbus_i2c1SetNVIC(0, 0);
+    i2cbus_i2c1SetPrio(0, 0);
     uint32_t event = I2C_GetLastEvent(I2CBUS_I2C1);
 
-    if((event & I2C_EVENT_MASTER_MODE_SELECT) == I2C_EVENT_MASTER_MODE_SELECT)  { /* send the START single, then enter this interrupt. EV5 */
-        if(event & 0x40) { /* if the I2Cx->SR1.RxNE bit is setting, by write/read I2Cx->DR clear this bit */
-            (void)(I2CBUS_I2C1->DR);
-        }
+    switch(event) {
+        case I2C_EVENT_MASTER_MODE_SELECT: { /* send the START single, then enter this interrupt. EV5 */
+            if(i2cbus_i2c1Struct.i2cxType == I2CBUS_I2CX_WRITE) {           /* start communication, write mode */
+                I2C_Send7bitAddress(I2CBUS_I2C1, i2cbus_i2c1Struct.slaveAddr, I2C_Direction_Transmitter);
+#if I2CBUS_I2CX_USE_DMA
+                if(i2cbus_i2c1Struct.dataBufLen > 1) {
+                    I2C_ITConfig(I2CBUS_I2C1, I2C_IT_BUF, DISABLE);         /* if ues I2C DMA, close I2C_IT_BUF */
+                    i2cbus_dataBufByDMA(I2CBUS_I2CX_WRITE, i2cbus_i2c1Struct.dataBufLen, i2cbus_i2c1Struct.dataBuf)
+                }
+                else { /* if only send slave address/register, don't use DMA */
+                    I2C_ITConfig(I2CBUS_I2C1, I2C_IT_BUF, ENABLE);
+                }
+#endif
+            }
+            else if(i2cbus_i2c1Struct.i2cxType == I2CBUS_I2CX_READ) {       /* start communication, read mode */
+                I2C_Send7bitAddress(I2CBUS_I2C1, i2cbus_i2c1Struct.slaveAddr, I2C_Direction_Receiver);
+#if I2CBUS_I2CX_USE_DMA
+                if(i2cbus_i2c1Struct.dataBufLen > 1) {
+                    I2C_DMALastTransferCmd(I2CBUS_I2C1, ENABLE);            /* Automatically sends NACK when the last one is received */
+                    I2C_ITConfig(I2CBUS_I2C1, I2C_IT_BUF, DISABLE);
+                    i2cbus_dataBufByDMA(I2CBUS_I2CX_READ, i2cbus_i2c1Struct.dataBufLen, i2cbus_i2c1Struct.dataBuf)
+                }
+                else { /* if only read one byte, don't use DMA */
+                    I2C_ITConfig(I2CBUS_I2C1, I2C_IT_BUF, ENABLE);          /* if ues I2C DMA, close I2C_IT_BUF */
+                }
+#endif
+            }
+        }break;
+        case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED: { /* write mode, send slave address, then enter this interrupt. EV6 */
+            if(i2cbus_i2c1Struct.dataBufLen == 0) {                         /* just send slave address */
+                I2C_GenerateSTOP(I2CBUS_I2C1,ENABLE);
 
-        if(i2cbus_i2c1Struct.i2cxType == I2CBUS_I2CX_WRITE) {           /* start communication, write mode */
-            I2C_Send7bitAddress(I2CBUS_I2C1, i2cbus_i2c1Struct.slaveAddr, I2C_Direction_Transmitter);
+                if(i2cbus_i2c1Struct.sendSuccessCback != NULL) {            /* success callback */
+                    i2cbus_i2c1SetPrio(I2CBUS_I2C1_EV_IRQ_Prio,I2CBUS_I2C1_EV_IRQ_SUB_Prio);
+                    i2cbus_i2c1Struct.sendSuccessCback();
+                }
+            }
+            else {
+                I2CBUS_I2C1->DR = *(i2cbus_i2c1Struct.dataBuf);
+                i2cbus_i2c1Struct.dataBuf++;
+                i2cbus_i2c1Struct.dataBufLen--;
+            }
+        }break;
+        case I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED: {
+            /* send mode, send slave address, then enter this interrupt. Prepare to receive data or configure ACK. EV6 */
+            if(i2cbus_i2c1Struct.dataBufLen > 1) {                          /* set ACK */
+                I2C_AcknowledgeConfig(I2CBUS_I2C1,ENABLE);
+            }
+            else if(i2cbus_i2c1Struct.dataBufLen == 1) {                    /* just receive one byte, set NACK */
+                I2C_AcknowledgeConfig(I2CBUS_I2C1,DISABLE);
+            }
+        }break;
+        case I2C_EVENT_MASTER_BYTE_RECEIVED: { /* receive one byte. EV7 */
+            if(i2cbus_i2c1Struct.dataBufLen > 0) {                          /* recieve data */
+                *(i2cbus_i2c1Struct.dataBuf) = (uint8_t)(I2CBUS_I2C1->DR);
+                i2cbus_i2c1Struct.dataBuf++;
+                i2cbus_i2c1Struct.dataBufLen--;
+            }
+            else {
+                (void)(I2CBUS_I2C1->DR);
+                return;
+            }
+
+            if(i2cbus_i2c1Struct.dataBufLen == 0) {                         /* all receive success */
+                I2C_GenerateSTOP(I2CBUS_I2C1,ENABLE);
+
+                if(i2cbus_i2c1Struct.recvSuccessCback != NULL) {            /* success callback */
+                    i2cbus_i2c1SetPrio(I2CBUS_I2C1_EV_IRQ_Prio,I2CBUS_I2C1_EV_IRQ_SUB_Prio);
+                    i2cbus_i2c1Struct.recvSuccessCback();
+                }
+            }
+            else if(i2cbus_i2c1Struct.dataBufLen == 1) {
+                I2C_AcknowledgeConfig(I2CBUS_I2C1, DISABLE);                /* last one byte, set NACK */
+            }
+        }break;
+        case I2C_EVENT_MASTER_BYTE_TRANSMITTING: { /* Transmitting a Byte EV8 */
+
+        }break;
+        case I2C_EVENT_MASTER_BYTE_TRANSMITTED: { /* one byte send success, EV8_2 */
 #if I2CBUS_I2CX_USE_DMA
-            if(i2cbus_i2c1Struct.dataBufLen > 1) {
-                I2C_ITConfig(I2CBUS_I2C1, I2C_IT_BUF, DISABLE);         /* if ues I2C DMA, close I2C_IT_BUF */
-                i2cbus_dataBufByDMA(I2CBUS_I2CX_WRITE, i2cbus_i2c1Struct.dataBufLen, i2cbus_i2c1Struct.dataBuf)
-            }
-            else { /* if only send slave address/register, don't use DMA */
-                I2C_ITConfig(I2CBUS_I2C1, I2C_IT_BUF, ENABLE);
-            }
-#endif
-        }
-        else if(i2cbus_i2c1Struct.i2cxType == I2CBUS_I2CX_READ) {       /* start communication, read mode */
-            I2C_Send7bitAddress(I2CBUS_I2C1, i2cbus_i2c1Struct.slaveAddr, I2C_Direction_Receiver);
-#if I2CBUS_I2CX_USE_DMA
-            if(i2cbus_i2c1Struct.dataBufLen > 1) {
-                I2C_DMALastTransferCmd(I2CBUS_I2C1, ENABLE);            /* Automatically sends NACK when the last one is received */
-                I2C_ITConfig(I2CBUS_I2C1, I2C_IT_BUF, DISABLE);
-                i2cbus_dataBufByDMA(I2CBUS_I2CX_READ, i2cbus_i2c1Struct.dataBufLen, i2cbus_i2c1Struct.dataBuf)
-            }
-            else {/* if only read one byte, don't use DMA */
-                I2C_ITConfig(I2CBUS_I2C1, I2C_IT_BUF, ENABLE);          /* if ues I2C DMA, close I2C_IT_BUF */
-            }
-#endif
-        }
-    }
-    else if((event & I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) == I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) {
-        /* write mode, send slave address, then enter this interrupt. EV6 */
-        if(i2cbus_i2c1Struct.dataBufLen == 0) {                         /* just send slave address */
             I2C_GenerateSTOP(I2CBUS_I2C1,ENABLE);
-
-            if(i2cbus_i2c1Struct.sendSuccessCback != NULL) {            /* success callback */
-                i2cbus_i2c1SetNVIC(I2CBUS_I2C1_EV_IRQ_Prio,I2CBUS_I2C1_EV_IRQ_SUB_Prio);
+            if(i2cbus_i2c1Struct.sendSuccessCback != NULL) {                /* success callback */
+                i2cbus_i2c1SetPrio(I2CBUS_I2C1_EV_IRQ_Prio,I2CBUS_I2C1_EV_IRQ_SUB_Prio);
                 i2cbus_i2c1Struct.sendSuccessCback();
             }
-        }
-        else {
-            I2CBUS_I2C1->DR = *(i2cbus_i2c1Struct.dataBuf);
-            i2cbus_i2c1Struct.dataBuf++;
-            i2cbus_i2c1Struct.dataBufLen--;
-        }
-    }
-    else if((event & I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED) == I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED) {
-        /* send mode, send slave address, then enter this interrupt. Prepare to receive data or configure ACK. EV6 */
-        if(i2cbus_i2c1Struct.dataBufLen > 1) {                          /* set ACK */
-            I2C_AcknowledgeConfig(I2CBUS_I2C1,ENABLE);
-        }
-        else if(i2cbus_i2c1Struct.dataBufLen == 1) {                    /* just receive one byte, set NACK */
-            I2C_AcknowledgeConfig(I2CBUS_I2C1,DISABLE);
-        }
-    }
-    else if((event & I2C_EVENT_MASTER_BYTE_RECEIVED) == I2C_EVENT_MASTER_BYTE_RECEIVED) { /* receive one byte. EV7 */
-        if(i2cbus_i2c1Struct.dataBufLen > 0) {                          /* recieve data */
-            *(i2cbus_i2c1Struct.dataBuf) = (uint8_t)(I2CBUS_I2C1->DR);
-            i2cbus_i2c1Struct.dataBuf++;
-            i2cbus_i2c1Struct.dataBufLen--;
-        }
-        else {
-            (void)(I2CBUS_I2C1->DR);
-            return;
-        }
-
-        if(i2cbus_i2c1Struct.dataBufLen == 0) {                         /* all receive success */
-            I2C_GenerateSTOP(I2CBUS_I2C1,ENABLE);
-
-            if(i2cbus_i2c1Struct.recvSuccessCback != NULL) {            /* success callback */
-                i2cbus_i2c1SetNVIC(I2CBUS_I2C1_EV_IRQ_Prio,I2CBUS_I2C1_EV_IRQ_SUB_Prio);
-                i2cbus_i2c1Struct.recvSuccessCback();
-            }
-        }
-        else if(i2cbus_i2c1Struct.dataBufLen == 1) {
-            I2C_AcknowledgeConfig(I2CBUS_I2C1, DISABLE);                /* last one byte, set NACK */
-        }
-    }
-    else if(event == I2C_EVENT_MASTER_BYTE_TRANSMITTING) {              /* Transmitting a Byte EV8 */
-    }
-    else if((event & I2C_EVENT_MASTER_BYTE_TRANSMITTED) == I2C_EVENT_MASTER_BYTE_TRANSMITTED) { /* one byte send success, EV8_2 */
-#if I2CBUS_I2CX_USE_DMA
-        I2C_GenerateSTOP(I2CBUS_I2C1,ENABLE);
-        if(i2cbus_i2c1Struct.sendSuccessCback != NULL) {                /* success callback */
-            i2cbus_i2c1SetNVIC(I2CBUS_I2C1_EV_IRQ_Prio,I2CBUS_I2C1_EV_IRQ_SUB_Prio);
-            i2cbus_i2c1Struct.sendSuccessCback();
-        }
 #else
-        if(i2cbus_i2c1Struct.dataBufLen == 0) {                         /* all send success */
-            I2C_GenerateSTOP(I2CBUS_I2C1,ENABLE);
+            if(i2cbus_i2c1Struct.dataBufLen == 0) {                         /* all send success */
+                I2C_GenerateSTOP(I2CBUS_I2C1,ENABLE);
 
-            if(i2cbus_i2c1Struct.sendSuccessCback != NULL) {            /* success callback */
-                i2cbus_i2c1SetNVIC(I2CBUS_I2C1_EV_IRQ_Prio,I2CBUS_I2C1_EV_IRQ_SUB_Prio);
-                i2cbus_i2c1Struct.sendSuccessCback();
+                if(i2cbus_i2c1Struct.sendSuccessCback != NULL) {            /* success callback */
+                    i2cbus_i2c1SetPrio(I2CBUS_I2C1_EV_IRQ_Prio,I2CBUS_I2C1_EV_IRQ_SUB_Prio);
+                    i2cbus_i2c1Struct.sendSuccessCback();
+                }
             }
-        }
-        else {
-            I2CBUS_I2C1->DR = *(i2cbus_i2c1Struct.dataBuf);             /* send next one byte */
-            i2cbus_i2c1Struct.dataBuf++;
-            i2cbus_i2c1Struct.dataBufLen--;
-        }
+            else {
+                I2CBUS_I2C1->DR = *(i2cbus_i2c1Struct.dataBuf);             /* send next one byte */
+                i2cbus_i2c1Struct.dataBuf++;
+                i2cbus_i2c1Struct.dataBufLen--;
+            }
 #endif
-    }
-    else if(event == 0x44) {                                            /* RxNE & BTF, write or read DR clear this bit */
-        (void)(I2CBUS_I2C1->DR);
-    }
-    else if(event == 0x30000) {                                         /* BUSY & M , must exist by test & dont't know why. You can comment this code and test it */
-        //i2cbus_i2c1IsError = 1;
-    }
-    else if(event == 0x10) {                                            /* clear SR1 bit 4 STOPF bit, first read SR1 & then write CR1 */
-        uint16_t I2Cx_CR1, I2Cx_SR1;
-        I2Cx_CR1 = I2CBUS_I2C1->CR1;
-
-        I2Cx_SR1 = I2CBUS_I2C1->SR1;
-        I2CBUS_I2C1->CR1 = I2Cx_CR1;
-    }
-    else {                                                              /* others */
-        if(event & 0x40)  (void)(I2CBUS_I2C1->DR);
-        //i2cbus_i2c1IsError = 1;
+        }break;
     }
 }
-
 /**
   * @brief  I2CBUS_I2C1_ERIRQ_Handler
   * @param  None
