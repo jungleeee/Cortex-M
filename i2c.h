@@ -28,7 +28,7 @@
 #define I2CBUS_I2C1_Clk                     RCC_APB1Periph_I2C1
 
 #define I2CBUS_I2C1_EV_IRQn                 I2C1_EV_IRQn
-#define I2CBUS_I2C1_EV_IRQ_Prio             8   //中断优先级必须低于configMAX_SYSCALL_INTERRUPT_PrioRITY
+#define I2CBUS_I2C1_EV_IRQ_Prio             8
 #define I2CBUS_I2C1_EV_IRQ_SUB_Prio         0
 #define I2CBUS_I2C1_EVIRQ_Handler           I2C1_EV_IRQHandler
 
