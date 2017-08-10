@@ -10,6 +10,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx.h"
+#include "stdio.h"
 #include "i2c.h"
 
 /** @addtogroup Template_Project
