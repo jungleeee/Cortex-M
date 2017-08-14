@@ -20,23 +20,21 @@
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
-#define I2C1_SCL_pin            GPIO_Pin_6
-#define I2C1_SDA_pin            GPIO_Pin_7
-#define I2C1_gpio_port          GPIOB
-#define I2C1_gpio_port_clk      RCC_AHB1Periph_GPIOB
-#define I2C1_clk                RCC_APB1Periph_I2C1
-#define I2C1_speed              400000
-#define I2C1OwnAddr             0x00
+#define i2cBus_SCL_Pin            GPIO_Pin_6
+#define i2cBus_SDA_Pin            GPIO_Pin_7
+#define i2cBus_GPIO_Port          GPIOB
+#define i2cBus_GPIO_PORT_Clk      RCC_AHB1Periph_GPIOB
+#define i2cBus_Clk                RCC_APB1Periph_I2C1
 
 /* Exported functions ------------------------------------------------------- */
-void IIC_Init(void);
-void IIC_Start(void);
-void IIC_Stop(void);
-void IIC_Send_Byte(uint8_t byte);
-void IIC_Ack(void);
-void IIC_NAck(void);
-uint8_t IIC_Read_Byte(unsigned char ack);
-uint8_t IIC_Wait_Ack(void);
+void i2cBus_init(void);
+void i2cBus_sendStart(void);
+void i2cBus_sendStop(void);
+void i2cBus_sendOneByte(uint8_t byte);
+void i2cBus_sendAck(void);
+void i2cBus_sendNack(void);
+uint8_t i2cBus_readOneByte(unsigned char ack);
+uint8_t i2cBus_waitAck(void);
 
 /**
   * @}
