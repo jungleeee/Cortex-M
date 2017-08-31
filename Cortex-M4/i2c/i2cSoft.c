@@ -195,7 +195,7 @@ uint8_t i2cBus_readOneByte(unsigned char ack)
         i2cBus_SCL_OUT_Low;
         delay_us(2);
         i2cBus_SCL_OUT_High;
-        byte <<= 1;
+        byte <<= 1;                 /* byte <<= 1 not byte <<= i */
         if(i2cBus_SDA_IN_Bit)
             byte++;
 		delay_us(1);
