@@ -18,14 +18,14 @@
   */
 
 /* Private typedef -----------------------------------------------------------*/
-typedef enum i2cbus_i2cxEn {
+typedef enum i2cbus_writeRead {
     I2CBUS_I2CX_WRITE,
     I2CBUS_I2CX_READ
-}i2cbus_i2cxTypeEnum;
+}i2cbus_i2cxType_e;
 
-typedef struct i2cbus_i2cxStr
+typedef struct i2cbus_struct
 {
-    i2cbus_i2cxTypeEnum     i2cxType;                   /* i2c write or read */
+    i2cbus_i2cxType_e       i2cxType;                   /* i2c write or read */
     uint8_t                 slaveAddr;                  /* slave device address */
     uint8_t                 *dataBuf;                   /* write or read data buf */
     uint16_t                dataBufLen;                 /* write or read data length & buf length */
@@ -33,14 +33,14 @@ typedef struct i2cbus_i2cxStr
     void                    (*sendSuccessCback)(void);  /* write all data over callback */
     void                    (*recvSuccessCback)(void);  /* read all data over callback */
     void                    (*errDealCback)(void);      /* write or read data error callback */
-}i2cbus_i2cxStruct;
+}i2cbus_i2cx_s;
 
 /* Private define ------------------------------------------------------------*/
 #define I2CBUS_I2CX_USE_DMA     0
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-static i2cbus_i2cxStruct  i2cbus_i2c1Struct;
+static i2cbus_i2cx_s  i2cbus_i2c1Struct;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -164,7 +164,7 @@ void i2cbus_i2c1Init(void)
   * @param  buf:      pointer of data buffer
   * @retval None
   */
-void i2cbus_dataBufByDMA(const i2cbus_i2cxTypeEnum i2cxType, uint16_t length, uint8_t *buf)
+void i2cbus_dataBufByDMA(const i2cbus_i2cxType_e i2cxType, uint16_t length, uint8_t *buf)
 {
     if(i2cxType == I2CBUS_I2CX_WRITE) {
         I2CBUS_I2C1_DMA_TX_Str->CR &= ((uint32_t)0xFFFFFFFE);    /* Disable DMA */
@@ -190,10 +190,10 @@ void i2cbus_dataBufByDMA(const i2cbus_i2cxTypeEnum i2cxType, uint16_t length, ui
   * @retval 0 start, 1 error
   */
 int8_t i2cbus_i2c1StartWriteData(uint8_t sAddr,
-                                   uint8_t *buf,
-                                uint16_t length,
-                        void (*txSuccess)(void),
-                         void (*errCback)(void))
+                                  uint8_t *buf,
+                               uint16_t length,
+                       void (*txSuccess)(void),
+                        void (*errCback)(void))
 {
     i2cbus_i2c1Struct.i2cxType = I2CBUS_I2CX_WRITE;
     i2cbus_i2c1Struct.slaveAddr = sAddr;
@@ -220,10 +220,10 @@ int8_t i2cbus_i2c1StartWriteData(uint8_t sAddr,
   * @retval 0 start, 1 error
   */
 int8_t i2cbus_i2c1StartReadData(uint8_t sAddr,
-                                  uint8_t *buf,
-                               uint16_t length,
-                       void (*rxSuccess)(void),
-                         void(*errCback)(void))
+                                 uint8_t *buf,
+                              uint16_t length,
+                      void (*rxSuccess)(void),
+                        void(*errCback)(void))
 {
     i2cbus_i2c1Struct.i2cxType = I2CBUS_I2CX_READ;
     i2cbus_i2c1Struct.slaveAddr = sAddr;
