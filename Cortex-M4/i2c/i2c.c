@@ -121,7 +121,7 @@ void i2cbus_i2c1Init(void)
     while(DMA_GetCmdStatus(I2CBUS_I2C1_DMA_TX_Str) != DISABLE);
 
     DMA_InitStructure.DMA_Channel = I2CBUS_I2C1_DMA_TX_Chl;
-    DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;				        ///* DMA dir Peripheral to Memory */
+    DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;				        /* DMA dir Peripheral to Memory */
     DMA_Init(I2CBUS_I2C1_DMA_TX_Str, &DMA_InitStructure);
 
     NVIC_InitStructure.NVIC_IRQChannel = I2C_DMA_TX_IRQn;
@@ -152,6 +152,7 @@ void i2cbus_i2c1Init(void)
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = I2CBUS_I2C1_ER_IRQ_SUB_Prio;
     NVIC_Init(&NVIC_InitStructure);
 
+    I2C_AcknowledgeConfig(I2CBUS_I2C1,DISABLE);                                    /* slave mode on | master mode off */
     I2C_Cmd(I2CBUS_I2C1, ENABLE);
 	I2C_ITConfig(I2CBUS_I2C1, I2C_IT_BUF, ENABLE);                                 /* if ues I2C DMA, close I2C_IT_BUF */
 	I2C_ITConfig(I2CBUS_I2C1, I2C_IT_EVT | I2C_IT_ERR, ENABLE);
