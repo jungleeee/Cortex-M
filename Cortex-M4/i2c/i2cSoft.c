@@ -24,6 +24,7 @@
 #define i2cBus_SDA_OUT_Low    GPIO_ResetBits(i2cBus_GPIO_Port, i2cBus_SDA_Pin)
 #define i2cBus_SDA_IN_Bit     GPIO_ReadInputDataBit(i2cBus_GPIO_Port, i2cBus_SDA_Pin)
 
+// 下面宏当中的 7 是指端口当中的第7只IO，如果你使用的是GPIO_9，那么请改成9
 #define i2cBus_SDA_SET_OUT_Mode       {i2cBus_GPIO_Port->MODER &= ~(GPIO_MODER_MODER0 << (7 * 2));\
                                     i2cBus_GPIO_Port->MODER |= (((uint32_t)GPIO_Mode_OUT) << (7 * 2));}
 #define i2cBus_SDA_SET_IN_Mode        {i2cBus_GPIO_Port->MODER &= ~(GPIO_MODER_MODER0 << (7 * 2));\
