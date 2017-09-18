@@ -1,0 +1,5 @@
+# stm32if40x-TIM
+stm32 TIM-DMA
+
+---
+测试环境是STN32f(405/407)ZET6和Ws2812
